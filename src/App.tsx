@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AddTransaction from "./pages/AddTransaction";
+import EditTransaction from "./pages/EditTransaction";
 import Transactions from "./pages/Transactions";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,11 @@ const App = () => (
             <Route path="/add-transaction" element={
               <ProtectedRoute>
                 <AddTransaction />
+              </ProtectedRoute>
+            } />
+            <Route path="/transactions/edit/:id" element={
+              <ProtectedRoute>
+                <EditTransaction />
               </ProtectedRoute>
             } />
             <Route path="/transactions" element={
