@@ -79,6 +79,26 @@
       "expenses": "Зарлага"
     }
   },
+  "settings": {
+    "title": "Тохиргоо",
+    "companyInfo": "Компанийн мэдээлэл",
+    "companyName": "Компанийн нэр *",
+    "registrationNumber": "Регистрийн дугаар *",
+    "taxNumber": "Татварын дугаар",
+    "address": "Хаяг",
+    "phone": "Утас",
+    "email": "Имэйл",
+    "taxSettings": "Татварын тохиргоо",
+    "vatRegistered": "НӨАТ төлөгч эсэх",
+    "vatRate": "НӨАТ хувь (%)",
+    "incomeTaxRate": "ААНОАТ хувь (%)",
+    "ebarimtSettings": "E-Barimt тохиргоо",
+    "ebarimtEnabled": "E-Barimt идэвхтэй эсэх",
+    "ebarimtTestMode": "Туршилтын горим",
+    "ebarimtApiKey": "E-Barimt API түлхүүр",
+    "saveSuccess": "Тохиргоо амжилттай хадгалагдлаа!",
+    "saveError": "Тохиргоо хадгалахад алдаа гарлаа"
+  },
   "common": {
     "loading": "Уншиж байна...",
     "search": "Хайх...",

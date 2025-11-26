@@ -41,6 +41,63 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          address: string | null
+          company_name: string
+          created_at: string
+          ebarimt_api_key: string | null
+          ebarimt_enabled: boolean | null
+          ebarimt_test_mode: boolean | null
+          email: string | null
+          id: string
+          income_tax_rate: number | null
+          phone: string | null
+          registration_number: string
+          tax_number: string | null
+          updated_at: string
+          user_id: string
+          vat_rate: number | null
+          vat_registered: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          created_at?: string
+          ebarimt_api_key?: string | null
+          ebarimt_enabled?: boolean | null
+          ebarimt_test_mode?: boolean | null
+          email?: string | null
+          id?: string
+          income_tax_rate?: number | null
+          phone?: string | null
+          registration_number: string
+          tax_number?: string | null
+          updated_at?: string
+          user_id: string
+          vat_rate?: number | null
+          vat_registered?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          ebarimt_api_key?: string | null
+          ebarimt_enabled?: boolean | null
+          ebarimt_test_mode?: boolean | null
+          email?: string | null
+          id?: string
+          income_tax_rate?: number | null
+          phone?: string | null
+          registration_number?: string
+          tax_number?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_rate?: number | null
+          vat_registered?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
