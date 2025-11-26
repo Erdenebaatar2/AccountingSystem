@@ -80,6 +80,26 @@
       "expenses": "Expenses"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "companyInfo": "Company Information",
+    "companyName": "Company Name *",
+    "registrationNumber": "Registration Number *",
+    "taxNumber": "Tax Number",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "taxSettings": "Tax Settings",
+    "vatRegistered": "VAT Registered",
+    "vatRate": "VAT Rate (%)",
+    "incomeTaxRate": "Income Tax Rate (%)",
+    "ebarimtSettings": "E-Barimt Settings",
+    "ebarimtEnabled": "E-Barimt Enabled",
+    "ebarimtTestMode": "Test Mode",
+    "ebarimtApiKey": "E-Barimt API Key",
+    "saveSuccess": "Settings saved successfully!",
+    "saveError": "Failed to save settings"
+  },
   "common": {
     "loading": "Loading...",
     "search": "Search...",

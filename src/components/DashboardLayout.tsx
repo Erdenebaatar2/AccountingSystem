@@ -9,7 +9,8 @@ import {
   FileText, 
   LogOut,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { path: '/add-transaction', icon: PlusCircle, label: 'Add Transaction' },
     { path: '/transactions', icon: List, label: 'Transactions' },
     { path: '/reports', icon: FileText, label: 'Reports' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (
