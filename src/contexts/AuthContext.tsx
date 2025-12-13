@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 interface User {
@@ -22,10 +21,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  // Хэрэв session хадгалагдсан бол дахин тохируулна
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Error parsing stored user:", error);
+        localStorage.removeItem("user");
+      }
+    }
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -35,14 +41,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
 
-      if (!res.ok) throw new Error(data.message || "Login failed");
-
-      setUser(data);
-      localStorage.setItem("user", JSON.stringify(data));
+      const userData: User = {
+        id: data.user.id || data.user.email, 
+        name: data.user.name,
+        email: data.user.email,
+        user_type: data.user.user_type || "individual", 
+        organization_name: data.user.organization_name,
+        organization_id: data.user.organization_id,
+      };
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      
       return {};
     } catch (error) {
+      console.error("Sign in error:", error);
       return { error: error as Error };
     }
   };
@@ -54,12 +72,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      
       const result = await res.json();
 
-      if (!res.ok) throw new Error(result.message || "Signup failed");
+      if (!res.ok) {
+        throw new Error(result.message || "Signup failed");
+      }
+
+      if (result.id) {
+        const userData: User = {
+          id: result.id,
+          name: result.name,
+          email: result.email,
+          user_type: result.user_type,
+          organization_name: result.organization_name,
+          organization_id: result.organization_id,
+        };
+        
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
 
       return {};
     } catch (error) {
+      console.error("Sign up error:", error);
       return { error: error as Error };
     }
   };
@@ -76,7 +112,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook ашиглах
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

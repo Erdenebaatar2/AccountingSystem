@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LangSwitch } from '@/components/ui/langSwitch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { sign } from 'crypto';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
@@ -55,28 +56,16 @@ const handleLogin = async (e: React.FormEvent) => {
   setLoading(true);
 
   try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(loginData),
-    });
+    const result = await signIn(loginData.email, loginData.password);
 
-    const data = await res.json();
-    console.log("LOGIN JSON:", data);
-    console.log("LOGIN RESPONSE:", loginData);
-
-    if (!res.ok) {
-      throw new Error(data.error || "Invalid login credentials");
+    if (result?.error) {
+      throw result.error;
     }
 
-    // LOGIN SUCCESS
     toast({
       title: "Success",
       description: "Logged in successfully!",
     });
-
-    // USER STATE-д хадгалах (AuthContext дахь setUser() байх ёстой)
-    // setUser(data.user);
 
     navigate("/");
   } catch (err: any) {
@@ -90,51 +79,38 @@ const handleLogin = async (e: React.FormEvent) => {
   }
 };
 
+ const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  try {
+    const result = await signUp({
+      ...signupData,
+      user_type: signupData.usertype,
+    });
 
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...signupData,
-          user_type: signupData.usertype,
-        }),
-      });
-      const data = await res.json();
-      console.log("Signup JSON:", signupData);
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to sign up. Please try again.');  
-      }
-      toast({
-        title: "Success",
-        description: "Account created successfully! Please log in.",
-      });
-      navigate('/');
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      } else if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } 
-    } finally {
-      setLoading(false);
+    if (result?.error) {
+      throw result.error;
     }
-  };
+
+    toast({
+      title: "Success",
+      description: "Account created successfully!",
+    });
+
+
+    navigate('/');
+  } catch (error: any) {
+    toast({
+      title: "Error",
+      description: error.message,
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
  <div className="min-h-screen flex flex-col justify-center bg-background">

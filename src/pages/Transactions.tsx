@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-// import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,19 +74,15 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          categories (
-            name,
-            color
-          )
-        `)
-        .eq('user_id', user?.id)
-        .order('date', { ascending: false });
-
-      if (error) throw error;
+      const res = await fetch('/api/transactions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+      
+      const data = await res.json();
       setTransactions(data || []);
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -125,10 +120,14 @@ const Transactions = () => {
     if (!transactionToDelete) return;
 
     try {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', transactionToDelete);
+      const res = await fetch('/api/transactions', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: transactionToDelete }),
+      });
+      const error = res.ok ? null : new Error('Failed to delete transaction');
 
       if (error) throw error;
 

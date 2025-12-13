@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-// import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
@@ -58,14 +57,10 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Fetch all transactions
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('date', { ascending: false });
+      const response = await fetch('/api/transactions');
+      const transactions = await response.json(); 
 
-      if (error) throw error;
-
+      if (response.status !== 200) throw new Error('Failed to fetch transactions');
       // Calculate stats
       const income = transactions?.filter(t => t.type === 'income')
         .reduce((sum, t) => sum + Number(t.amount), 0) || 0;

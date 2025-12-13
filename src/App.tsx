@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { TransactionProvider } from "@/contexts/transactionContext";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -25,6 +26,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
+          <TransactionProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route
@@ -35,7 +37,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* <Route
+            <Route
               path="/add-transaction"
               element={
                 <ProtectedRoute>
@@ -43,15 +45,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/transactions/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <EditTransaction />
-                </ProtectedRoute>
-              }
-            />
-            <Route
+                 <Route
               path="/transactions"
               element={
                 <ProtectedRoute>
@@ -59,6 +53,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* <Route
+              path="/transactions/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <EditTransaction />
+                </ProtectedRoute>
+              }
+            />
+       
             <Route
               path="/reports"
               element={
@@ -85,6 +88,7 @@ const App = () => (
             /> */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </TransactionProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

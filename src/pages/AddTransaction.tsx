@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { supabase } from '@/integrations/supabase/client';
+import { useTransaction, TransactionInput } from '@/contexts/transactionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,26 +19,20 @@ const transactionSchema = z.object({
   amount: z.number().positive({ message: "Amount must be positive" }),
   date: z.string().min(1, { message: "Date is required" }),
   category_id: z.string().min(1, { message: "Please select a category" }),
-  account: z.string().trim().max(100, { message: "Account must be less than 100 characters" }).optional(),
-  document_no: z.string().trim().max(50, { message: "Document number must be less than 50 characters" }).optional(),
-  description: z.string().trim().max(500, { message: "Description must be less than 500 characters" }).optional(),
+  account: z.string().trim().max(100).optional(),
+  document_no: z.string().trim().max(50).optional(),
+  description: z.string().trim().max(500).optional(),
 });
 
-interface Category {
-  id: string;
-  name: string;
-  type: string;
-  color: string;
-}
-
-const AddTransaction = () => {
+const AddTransaction = () => {  
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-
+  const [categories, setCategories] = useState<{id: string, name: string, color: string}[]>([]);
+  const { Categories, addTransaction } = useTransaction();
+  
   const [formData, setFormData] = useState({
     type: 'expense' as 'income' | 'expense',
     amount: '',
@@ -49,87 +43,86 @@ const AddTransaction = () => {
     description: '',
   });
 
+  // Fetch categories when type changes
   useEffect(() => {
-    if (user) {
-      fetchCategories();
+    if (!user) return;
+
+    const loadCategories = async () => {
+      const data = await Categories(formData.type);
+      setCategories(data.map(cat => ({ 
+        id: cat.id,
+        name: cat.name, 
+        color: cat.color 
+      })));
+    };
+
+    loadCategories();
+  }, [formData.type, user, Categories]);
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    const validatedData = transactionSchema.parse({
+      ...formData,
+      amount: parseFloat(formData.amount),
+    });
+    
+    if (!user) throw new Error("User not logged in");
+    const userId = user.id || user.email;
+    
+    if (!userId) {
+      throw new Error("User ID or email not found in user object");
     }
-  }, [user, formData.type]);
+    const transactionData: TransactionInput = {
+      user_id: userId,
+      type: validatedData.type,
+      amount: validatedData.amount,
+      date: validatedData.date,
+      category_id: validatedData.category_id || null,
+      account: validatedData.account || null,
+      document_no: validatedData.document_no || null,
+      description: validatedData.description || null,
+    };
+    
+    await addTransaction(transactionData);
 
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('type', formData.type)
-        .order('name');
+    toast({
+      title: "Success",
+      description: "Transaction added successfully!",
+    });
 
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
+    setFormData({
+      type: 'expense',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      category_id: '',
+      account: '',
+      document_no: '',
+      description: '',
+    });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const validatedData = transactionSchema.parse({
-        ...formData,
-        amount: parseFloat(formData.amount),
-      });
-
-      const { error } = await supabase.from('transactions').insert([{
-        user_id: user?.id,
-        type: validatedData.type,
-        amount: validatedData.amount,
-        date: validatedData.date,
-        category_id: validatedData.category_id,
-        account: validatedData.account || null,
-        document_no: validatedData.document_no || null,
-        description: validatedData.description || null,
-      }]);
-
-      if (error) throw error;
-
+    navigate('/transactions');
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
       toast({
-        title: "Success",
-        description: "Transaction added successfully!",
+        title: "Validation Error",
+        description: error.errors[0].message,
+        variant: "destructive",
       });
-
-      // Reset form
-      setFormData({
-        type: 'expense',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        category_id: '',
-        account: '',
-        document_no: '',
-        description: '',
+    } else {
+      console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add transaction",
+        variant: "destructive",
       });
-
-      navigate('/transactions');
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to add transaction. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
     }
-  };
-
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto space-y-6">
@@ -146,6 +139,7 @@ const AddTransaction = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
+                {/* Type */}
                 <div className="space-y-2">
                   <Label htmlFor="type">{t('transaction.type')}</Label>
                   <Select
@@ -164,6 +158,7 @@ const AddTransaction = () => {
                   </Select>
                 </div>
 
+                {/* Amount */}
                 <div className="space-y-2">
                   <Label htmlFor="amount">{t('transaction.amount')}</Label>
                   <Input
@@ -177,6 +172,7 @@ const AddTransaction = () => {
                   />
                 </div>
 
+                {/* Date */}
                 <div className="space-y-2">
                   <Label htmlFor="date">{t('transaction.date')}</Label>
                   <Input
@@ -188,6 +184,7 @@ const AddTransaction = () => {
                   />
                 </div>
 
+                {/* Category */}
                 <div className="space-y-2">
                   <Label htmlFor="category">{t('transaction.category')}</Label>
                   <Select
@@ -198,7 +195,7 @@ const AddTransaction = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {categories.map(category => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
@@ -207,6 +204,7 @@ const AddTransaction = () => {
                   </Select>
                 </div>
 
+                {/* Account */}
                 <div className="space-y-2">
                   <Label htmlFor="account">{t('transaction.account')}</Label>
                   <Input
@@ -218,6 +216,7 @@ const AddTransaction = () => {
                   />
                 </div>
 
+                {/* Document No */}
                 <div className="space-y-2">
                   <Label htmlFor="document_no">{t('transaction.documentNo')}</Label>
                   <Input
@@ -230,6 +229,7 @@ const AddTransaction = () => {
                 </div>
               </div>
 
+              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">{t('transaction.description')}</Label>
                 <Textarea
@@ -241,6 +241,7 @@ const AddTransaction = () => {
                 />
               </div>
 
+              {/* Buttons */}
               <div className="flex gap-4">
                 <Button type="submit" disabled={loading} className="flex-1">
                   {loading ? (
