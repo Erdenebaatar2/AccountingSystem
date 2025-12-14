@@ -134,9 +134,24 @@ const fetchTransactions = async (user_id: string) =>  {
     setTransactions(transactions.map(t => t.id === transaction.id ? transaction : t));
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(transactions.filter(t => t.id !== id));
-  };
+const deleteTransaction = async (id: string): Promise<void> => {
+  const res = await fetch(`http://localhost:5000/api/transactions/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to delete transaction');
+  }
+
+  // frontend state update
+  setTransactions(prev => prev.filter(t => t.id !== id));
+};
+
 
   return (
     <TransactionContext.Provider value={{ 

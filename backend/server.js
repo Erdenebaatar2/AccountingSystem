@@ -168,7 +168,6 @@ app.get("/api/categories", async (req, res) => {
 app.get("/api/transactions", async (req, res) => {
   try {
     const { user_id } = req.query;
-    console.log("Received user_id:", user_id);
     if (!user_id) {
       return res.status(400).json({ 
         message: "user_id is required" 
@@ -187,6 +186,39 @@ app.get("/api/transactions", async (req, res) => {
   } catch (error) {
     console.error("Error fetching transactions:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.delete('/api/transactions/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({
+      message: 'Transaction id is required',
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM transactions WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: 'Transaction not found',
+      });
+    }
+
+    res.status(200).json({
+      message: 'Transaction deleted successfully',
+      transaction: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    res.status(500).json({
+      message: 'Internal server error',
+    });
   }
 });
 
@@ -216,13 +248,3 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Available endpoints:`);
-  console.log(`   http://localhost:${PORT}/`);
-  console.log(`   http://localhost:${PORT}/api/health`);
-  console.log(`   http://localhost:${PORT}/api/login`);
-  console.log(`   http://localhost:${PORT}/api/signup`);
-  console.log(`   http://localhost:${PORT}/api/transactions`);
-  console.log(`   http://localhost:${PORT}/api/categories`);
-});
