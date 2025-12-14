@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTransaction } from '@/contexts/transactionContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -22,6 +23,8 @@ import {
 } from 'recharts';
 import DashboardLayout from '@/components/DashboardLayout';
 
+/* ===================== TYPES ===================== */
+
 interface Transaction {
   id: string;
   amount: number;
@@ -36,87 +39,106 @@ interface DashboardStats {
   recentTransactions: Transaction[];
 }
 
+/* ===================== COMPONENT ===================== */
+
 const Dashboard = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { transactions, fetchTransactions } = useTransaction();
+
   const [stats, setStats] = useState<DashboardStats>({
     totalIncome: 0,
     totalExpenses: 0,
     netBalance: 0,
     recentTransactions: []
   });
+
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /* ===================== FETCH TRANSACTIONS ===================== */
+
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
+    if (user?.id) {
+      fetchTransactions(user.id);
     }
-  }, [user]);
+  }, [user?.id]);
 
-  const fetchDashboardData = async () => {
-    try {
-      // Fetch all transactions
-      const response = await fetch('/api/transactions');
-      const transactions = await response.json(); 
+  /* ===================== CALCULATE DASHBOARD ===================== */
 
-      if (response.status !== 200) throw new Error('Failed to fetch transactions');
-      // Calculate stats
-      const income = transactions?.filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-      
-      const expenses = transactions?.filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+  useEffect(() => {
+    if (!transactions) return;
 
-      setStats({
-        totalIncome: income,
-        totalExpenses: expenses,
-        netBalance: income - expenses,
-        recentTransactions: (transactions?.slice(0, 5) || []) as Transaction[]
-      });
+    calculateStats(transactions);
+    buildChartData(transactions);
+    setLoading(false);
+  }, [transactions]);
 
-      // Prepare chart data (last 7 days)
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
-      });
+  /* ===================== FUNCTIONS ===================== */
 
-      const chartDataArray = last7Days.map(date => {
-        const dayTransactions = transactions?.filter(t => t.date === date) || [];
-        const income = dayTransactions
-          .filter(t => t.type === 'income')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
-        const expenses = dayTransactions
-          .filter(t => t.type === 'expense')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
+  const calculateStats = (txs: Transaction[]) => {
+    let income = 0;
+    let expense = 0;
 
-        return {
-          date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          income,
-          expenses
-        };
-      });
+    txs.forEach(t => {
+      if (t.type === 'income') income += Number(t.amount);
+      else expense += Number(t.amount);
+    });
 
-      setChartData(chartDataArray);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
+    setStats({
+      totalIncome: income,
+      totalExpenses: expense,
+      netBalance: income - expense,
+      recentTransactions: txs.slice(0, 5)
+    });
   };
+
+  const buildChartData = (txs: Transaction[]) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0];
+    });
+
+    const data = last7Days.map(date => {
+      const dayTx = txs.filter(t => t.date.startsWith(date));
+
+      const income = dayTx
+        .filter(t => t.type === 'income')
+        .reduce((s, t) => s + Number(t.amount), 0);
+
+      const expenses = dayTx
+        .filter(t => t.type === 'expense')
+        .reduce((s, t) => s + Number(t.amount), 0);
+
+      return {
+        date: new Date(date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        }),
+        income,
+        expenses
+      };
+    });
+
+    setChartData(data);
+  };
+
+  /* ===================== LOADING ===================== */
 
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
+        <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       </DashboardLayout>
     );
   }
 
-  return (
+  /* ===================== UI ===================== */
+
+   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>

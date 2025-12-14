@@ -38,6 +38,7 @@ interface TransactionInput {
 interface TransactionContextType {
     transactions: Transaction[];
     addTransaction: (transaction: TransactionInput) => Promise<Transaction>;
+    fetchTransactions: (user_id: string) => Promise<void>;
     updateTransaction: (transaction: Transaction) => void;
     deleteTransaction: (id: string) => void;
     Categories: (categoryType: string) => Promise<Category[]>;
@@ -107,6 +108,28 @@ const addTransaction = async (transactionData: TransactionInput): Promise<Transa
     throw error;
   }
 };
+
+const fetchTransactions = async (user_id: string) =>  {
+  try {
+    const res = await fetch(`http://localhost:5000/api/transactions?user_id=${user_id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log('Fetch transactions response frontend:', res);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch transactions: ${res.status}`);
+    }
+    const data = await res.json();
+    setTransactions(data);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+  }
+};
+
   const updateTransaction = (transaction: Transaction) => {
     setTransactions(transactions.map(t => t.id === transaction.id ? transaction : t));
   };
@@ -119,6 +142,7 @@ const addTransaction = async (transactionData: TransactionInput): Promise<Transa
     <TransactionContext.Provider value={{ 
       transactions, 
       addTransaction, 
+      fetchTransactions,
       updateTransaction, 
       deleteTransaction, 
       Categories 

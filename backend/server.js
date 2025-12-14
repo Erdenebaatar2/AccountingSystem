@@ -158,7 +158,6 @@ app.get("/api/categories", async (req, res) => {
     }
     
     const result = await pool.query(query, params);
-    console.log(`📊 Fetched ${result.rows.length} categories`);
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -166,11 +165,10 @@ app.get("/api/categories", async (req, res) => {
   }
 });
 
-// GET transactions (нэмэлт)
 app.get("/api/transactions", async (req, res) => {
   try {
     const { user_id } = req.query;
-    
+    console.log("Received user_id:", user_id);
     if (!user_id) {
       return res.status(400).json({ 
         message: "user_id is required" 
@@ -184,7 +182,7 @@ app.get("/api/transactions", async (req, res) => {
        ORDER BY t.date DESC`,
       [user_id]
     );
-    
+
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching transactions:", error);
@@ -194,7 +192,6 @@ app.get("/api/transactions", async (req, res) => {
 
 // 404 handler
 app.use((req, res, next) => {
-  console.log(`❌ Route not found: ${req.method} ${req.url}`);
   res.status(404).json({ 
     message: `Route ${req.method} ${req.url} not found`,
     availableEndpoints: [
