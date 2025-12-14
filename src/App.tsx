@@ -53,7 +53,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* <Route
+            <Route
               path="/transactions/edit/:id"
               element={
                 <ProtectedRoute>
@@ -61,6 +61,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* 
        
             <Route
               path="/reports"

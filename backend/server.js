@@ -237,6 +237,50 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
+app.put('/api/transactions/:id', async (req, res) => {
+  const { id } = req.params;
+  const { type, amount, date, account, document_no, description, category_id } = req.body;
+
+  if (!id) return res.status(400).json({ message: 'Transaction ID is required' });
+
+  try {
+    const result = await pool.query(
+      `UPDATE transactions 
+       SET type=$1, amount=$2, date=$3, account=$4, document_no=$5, description=$6, category_id=$7
+       WHERE id=$8
+       RETURNING *`,
+      [type, amount, date, account || null, document_no || null, description || null, category_id || null, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    // Get the transaction with category details
+    const transaction = result.rows[0];
+    
+    // If category_id exists, fetch category details
+    if (transaction.category_id) {
+      const categoryResult = await pool.query(
+        'SELECT id, name, color FROM categories WHERE id = $1',
+        [transaction.category_id]
+      );
+      
+      transaction.categories = categoryResult.rows.length > 0 
+        ? categoryResult.rows[0] 
+        : null;
+    } else {
+      transaction.categories = null;
+    }
+
+    res.json(transaction);
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ 

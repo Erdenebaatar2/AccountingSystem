@@ -17,7 +17,9 @@ interface Transaction {
   document_no: string | null;
   description: string | null;
   category_id: string | null;
-  categories: {
+  created_at?: string; 
+  updated_at?: string; 
+  categories?: { 
     id: string;
     name: string;
     color: string;
@@ -130,9 +132,27 @@ const fetchTransactions = async (user_id: string) =>  {
   }
 };
 
-  const updateTransaction = (transaction: Transaction) => {
-    setTransactions(transactions.map(t => t.id === transaction.id ? transaction : t));
-  };
+const updateTransaction = async (tx: Transaction): Promise<Transaction> => {
+  const response = await fetch(`http://localhost:5000/api/transactions/${tx.id}`, { // Add full URL
+    method: 'PUT',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(tx),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update transaction');
+  }
+  
+  const updatedTx = await response.json();
+
+  setTransactions(prev => prev.map(t => t.id === tx.id ? updatedTx : t));
+  return updatedTx; 
+};
+
 
 const deleteTransaction = async (id: string): Promise<void> => {
   const res = await fetch(`http://localhost:5000/api/transactions/${id}`, {
