@@ -187,20 +187,38 @@ const handleLogin = async (e: React.FormEvent) => {
                   </SelectContent>
                 </Select>
               </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">{signupData.usertype === 'individual' ? t('auth.fullName') : t('auth.organizationName')}</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={signupData.name}
-                 onChange={(e) =>
-                      signupData.usertype === 'individual'
-                        ? setSignupData({ ...signupData, name: e.target.value })
-                        : setSignupData({ ...signupData, organization_name: e.target.value })
+              <div className="space-y-2">
+                <Label htmlFor="signup-name">
+                  {signupData.usertype === 'individual' 
+                    ? t('auth.fullName') 
+                    : t('auth.organizationName')
+                  }
+                </Label>
+                <Input
+                  id="signup-name"
+                  type="text"
+                  placeholder={
+                    signupData.usertype === 'individual' 
+                      ? "John Doe" 
+                      : "Your Company Name"
+                  }
+                  value={
+                    signupData.usertype === 'individual'
+                      ? signupData.name
+                      : signupData.organization_name || ''
+                  }
+                  onChange={(e) => {
+                    if (signupData.usertype === 'individual') {
+                      setSignupData({ ...signupData, name: e.target.value });
+                    } else {
+                      setSignupData({ 
+                        ...signupData, 
+                        organization_name: e.target.value 
+                      });
                     }
-                  />
-                </div>
+                  }}
+                />
+              </div>
                 {signupData.usertype === 'organization' && (
                   <div className="space-y-2">
                     <Label htmlFor="signup-organization-id">{t('auth.organizationId')}</Label>

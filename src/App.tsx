@@ -61,8 +61,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* 
-       
             <Route
               path="/reports"
               element={
@@ -71,6 +69,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* 
+       
+            
             <Route
               path="/settings"
               element={

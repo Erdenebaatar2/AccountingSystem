@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-// import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTransaction } from '@/contexts/transactionContext';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -27,7 +26,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 interface CategoryData {
   name: string;
@@ -35,9 +34,17 @@ interface CategoryData {
   color: string;
 }
 
+interface MonthlyData {
+  month: string;
+  income: number;
+  expenses: number;
+  profit: number;
+}
+
 const Reports = () => {
-  const { t } = useTranslation();
   const { user } = useAuth();
+  const { transactions } = useTransaction();
+  
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -49,54 +56,61 @@ const Reports = () => {
   
   const [incomeByCategory, setIncomeByCategory] = useState<CategoryData[]>([]);
   const [expensesByCategory, setExpensesByCategory] = useState<CategoryData[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
+  const [netBalance, setNetBalance] = useState(0);
 
   useEffect(() => {
-    if (user) {
-      fetchReportData();
+    if (user && transactions.length > 0) {
+      generateReportData();
     }
-  }, [user, startDate, endDate]);
+  }, [user, transactions, startDate, endDate]);
 
-  const fetchReportData = async () => {
+  const generateReportData = () => {
     setLoading(true);
     try {
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          categories (
-            name,
-            color
-          )
-        `)
-        .eq('user_id', user?.id)
-        .gte('date', startDate)
-        .lte('date', endDate);
-
-      if (error) throw error;
+      // Filter transactions by date range
+      const filteredTransactions = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        return txDate >= start && txDate <= end;
+      });
 
       // Calculate totals
-      const income = transactions?.filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-      const expenses = transactions?.filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      const income = filteredTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const expenses = filteredTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
 
       setTotalIncome(income);
       setTotalExpenses(expenses);
+      setNetBalance(income - expenses);
 
       // Group by category for pie charts
       const incomeMap = new Map<string, { value: number; color: string }>();
       const expensesMap = new Map<string, { value: number; color: string }>();
 
-      transactions?.forEach(t => {
+      filteredTransactions.forEach(t => {
         if (t.categories) {
           const map = t.type === 'income' ? incomeMap : expensesMap;
           const existing = map.get(t.categories.name);
           map.set(t.categories.name, {
             value: (existing?.value || 0) + Number(t.amount),
-            color: t.categories.color
+            color: t.categories.color || '#8884d8'
+          });
+        } else if (t.category_id) {
+          // Handle transactions without category details
+          const categoryName = t.type === 'income' ? 'Uncategorized Income' : 'Uncategorized Expense';
+          const map = t.type === 'income' ? incomeMap : expensesMap;
+          const existing = map.get(categoryName);
+          map.set(categoryName, {
+            value: (existing?.value || 0) + Number(t.amount),
+            color: t.type === 'income' ? '#10b981' : '#ef4444'
           });
         }
       });
@@ -118,44 +132,61 @@ const Reports = () => {
       );
 
       // Monthly trend data
-      const monthlyMap = new Map<string, { income: number; expenses: number }>();
-      transactions?.forEach(t => {
+      const monthlyMap = new Map<string, { income: number; expenses: number; profit: number }>();
+      
+      filteredTransactions.forEach(t => {
         const month = new Date(t.date).toLocaleDateString('en-US', { 
           month: 'short', 
           year: 'numeric' 
         });
-        const existing = monthlyMap.get(month) || { income: 0, expenses: 0 };
+        const existing = monthlyMap.get(month) || { income: 0, expenses: 0, profit: 0 };
+        
         if (t.type === 'income') {
           existing.income += Number(t.amount);
         } else {
           existing.expenses += Number(t.amount);
         }
+        
+        existing.profit = existing.income - existing.expenses;
         monthlyMap.set(month, existing);
       });
 
-      setMonthlyData(
-        Array.from(monthlyMap.entries())
-          .map(([month, data]) => ({ month, ...data }))
-          .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime())
-      );
+      const sortedMonthlyData = Array.from(monthlyMap.entries())
+        .map(([month, data]) => ({ 
+          month, 
+          income: data.income,
+          expenses: data.expenses,
+          profit: data.profit
+        }))
+        .sort((a, b) => {
+          const dateA = new Date(a.month);
+          const dateB = new Date(b.month);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+      setMonthlyData(sortedMonthlyData);
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Error generating report data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleExport = () => {
-    // Simple CSV export
-    const headers = ['Date Range', 'Total Income', 'Total Expenses', 'Net Balance'];
-    const data = [
-      `${startDate} to ${endDate}`,
-      totalIncome.toFixed(2),
-      totalExpenses.toFixed(2),
-      (totalIncome - totalExpenses).toFixed(2)
-    ];
+    // CSV export
+    const headers = ['Month', 'Income', 'Expenses', 'Profit/Loss'];
+    const csvData = monthlyData.map(row => [
+      row.month,
+      row.income.toFixed(2),
+      row.expenses.toFixed(2),
+      row.profit.toFixed(2)
+    ]);
     
-    const csv = [headers.join(','), data.join(',')].join('\n');
+    const csv = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+    
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -164,11 +195,33 @@ const Reports = () => {
     a.click();
   };
 
+  const handleRefresh = () => {
+    generateReportData();
+  };
+
+  // Custom tooltip for charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
+          <p className="font-semibold">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name}: ${entry.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-muted-foreground">Generating reports...</p>
         </div>
       </DashboardLayout>
     );
@@ -176,53 +229,74 @@ const Reports = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">{t('reports.title')}</h2>
-          <p className="text-muted-foreground">{t('reports.description')}</p>
+      <div className="space-y-6 p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Financial Reports</h2>
+            <p className="text-muted-foreground">Analyze your income and expenses</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleRefresh} variant="outline">
+              Refresh
+            </Button>
+            <Button onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle>{t('reports.filters')}</CardTitle>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Select date range and report type</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
               <div className="space-y-2">
-                <Label htmlFor="start-date">{t('reports.startDate')}</Label>
+                <Label htmlFor="start-date">Start Date</Label>
                 <Input
                   id="start-date"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="end-date">{t('reports.endDate')}</Label>
+                <Label htmlFor="end-date">End Date</Label>
                 <Input
                   id="end-date"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="report-type">{t('reports.reportType')}</Label>
-                <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
-                  <SelectTrigger id="report-type">
+                <Label htmlFor="report-type">Report Type</Label>
+                <Select 
+                  value={reportType} 
+                  onValueChange={(value: 'monthly' | 'category') => setReportType(value)}
+                >
+                  <SelectTrigger id="report-type" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">{t('reports.charts.monthlyTrend')}</SelectItem>
-                    <SelectItem value="category">{t('reports.categoryBreakdown')}</SelectItem>
+                    <SelectItem value="monthly">Monthly Trends</SelectItem>
+                    <SelectItem value="category">Category Breakdown</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <Button onClick={handleExport} className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  {t('reports.exportCSV')}
+              <div className="space-y-2">
+                <Label className="invisible">Apply</Label>
+                <Button 
+                  onClick={generateReportData} 
+                  className="w-full"
+                  variant="secondary"
+                >
+                  Apply Filters
                 </Button>
               </div>
             </div>
@@ -232,35 +306,47 @@ const Reports = () => {
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">{t('reports.summary.totalIncome')}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">
+              <div className="text-2xl font-bold text-green-600">
                 ${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                From {transactions.filter(t => t.type === 'income').length} income transactions
+              </p>
             </CardContent>
           </Card>
+          
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">{t('reports.summary.totalExpenses')}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">
+              <div className="text-2xl font-bold text-red-600">
                 ${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                From {transactions.filter(t => t.type === 'expense').length} expense transactions
+              </p>
             </CardContent>
           </Card>
+          
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">{t('reports.summary.netProfitLoss')}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+              <DollarSign className={`h-4 w-4 ${netBalance >= 0 ? 'text-green-500' : 'text-red-500'}`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${
-                totalIncome - totalExpenses >= 0 ? 'text-success' : 'text-destructive'
-              }`}>
-                ${(totalIncome - totalExpenses).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {netBalance >= 0 ? 'Profit' : 'Loss'} for selected period
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -269,78 +355,183 @@ const Reports = () => {
         {reportType === 'monthly' ? (
           <Card>
             <CardHeader>
-              <CardTitle>{t('reports.charts.monthlyTrend')}</CardTitle>
+              <CardTitle>Monthly Financial Trends</CardTitle>
+              <CardDescription>Income vs Expenses over time</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="income" fill="hsl(var(--success))" name={t('reports.labels.income')} />
-                  <Bar dataKey="expenses" fill="hsl(var(--destructive))" name={t('reports.labels.expenses')} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="month" 
+                      stroke="#6b7280"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="#6b7280"
+                      fontSize={12}
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar 
+                      dataKey="income" 
+                      fill="#10b981" 
+                      name="Income" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="expenses" 
+                      fill="#ef4444" 
+                      name="Expenses" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('reports.charts.incomeByCategory')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={incomeByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {incomeByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          <>
+            {/* Category Breakdown Charts */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Income by Category</CardTitle>
+                  <CardDescription>Where your income comes from</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    {incomeByCategory.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={incomeByCategory}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                            outerRadius={80}
+                            innerRadius={40}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {incomeByCategory.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">No income data for selected period</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('reports.charts.expensesByCategory')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={expensesByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {expensesByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Expenses by Category</CardTitle>
+                  <CardDescription>Where your money goes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    {expensesByCategory.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={expensesByCategory}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                            outerRadius={80}
+                            innerRadius={40}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {expensesByCategory.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">No expense data for selected period</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Category Tables */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Income Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {incomeByCategory.length > 0 ? (
+                    <div className="space-y-2">
+                      {incomeByCategory.map((category, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          <div className="font-semibold text-green-600">
+                            ${category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No income categories</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Expense Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {expensesByCategory.length > 0 ? (
+                    <div className="space-y-2">
+                      {expensesByCategory.map((category, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          <div className="font-semibold text-red-600">
+                            ${category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No expense categories</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </>
         )}
       </div>
     </DashboardLayout>
