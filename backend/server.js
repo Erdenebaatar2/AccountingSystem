@@ -173,8 +173,23 @@ app.get("/api/transactions", async (req, res) => {
         message: "user_id is required" 
       });
     }
+
+    // Backend-д categories object-г шууд үүсгэж өгнө
     const result = await pool.query(
-      `SELECT t.*, c.name as category_name, c.color as category_color
+      `SELECT 
+         t.id,
+         t.user_id,
+         t.amount::numeric AS amount,    
+         t.type,
+         t.date,
+         t.account,
+         t.document_no,
+         t.description,
+         t.category_id,
+         CASE 
+           WHEN c.id IS NOT NULL THEN json_build_object('id', c.id, 'name', c.name, 'color', c.color)
+           ELSE NULL
+         END AS categories
        FROM transactions t
        LEFT JOIN categories c ON t.category_id = c.id
        WHERE t.user_id = $1
@@ -248,3 +263,13 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Available endpoints:`);
+  console.log(`   http://localhost:${PORT}/`);
+  console.log(`   http://localhost:${PORT}/api/health`);
+  console.log(`   http://localhost:${PORT}/api/login`);
+  console.log(`   http://localhost:${PORT}/api/signup`);
+  console.log(`   http://localhost:${PORT}/api/transactions`);
+  console.log(`   http://localhost:${PORT}/api/categories`);
+});

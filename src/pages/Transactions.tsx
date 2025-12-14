@@ -63,6 +63,7 @@ const Transactions = () => {
 
   useEffect(() => {
     let filtered = [...transactions];
+    console.log('Filtering transactions:', filtered);
 
     if (typeFilter !== 'all') {
       filtered = filtered.filter(t => t.type === typeFilter);
