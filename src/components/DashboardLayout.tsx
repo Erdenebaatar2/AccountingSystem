@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,25 +14,27 @@ import {
   Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 import { LangSwitch } from '@/components/ui/langSwitch';
+import { useTranslation } from 'react-i18next';
+
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const navItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/add-transaction', icon: PlusCircle, label: 'Add Transaction' },
-    { path: '/transactions', icon: List, label: 'Transactions' },
-    { path: '/salary', icon: Calculator, label: 'Salary' },
-    { path: '/reports', icon: FileText, label: 'Reports' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { path: '/add-transaction', icon: PlusCircle, label: t('nav.addTransaction') },
+    { path: '/transactions', icon: List, label: t('nav.transactions') },
+    { path: '/salary', icon: Calculator, label: t('nav.salary') },
+    { path: '/reports', icon: FileText, label: t('nav.reports') },
+    { path: '/settings', icon: Settings, label: t('nav.settings') },
   ];
 
   return (
@@ -50,11 +52,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             >
               {mobileMenuOpen ? <X /> : <Menu />}
             </Button>
-            <h1 className="text-xl font-bold text-primary">Accounting System</h1>
+            <h1 className="text-xl font-bold text-primary">{t('nav.appTitle')}</h1>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            {t('nav.logout')}
           </Button>
         </div>
       </header>
@@ -87,7 +89,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-40 md:hidden">
-            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            <div
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
             <aside className="fixed left-0 top-16 bottom-0 w-64 bg-card border-r p-4">
               <nav className="space-y-2">
                 {navItems.map((item) => {

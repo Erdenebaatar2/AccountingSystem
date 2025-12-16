@@ -51,8 +51,10 @@
     "allTransactions": "Бүх гүйлгээ",
     "filters": "Шүүлтүүр",
     "searchPlaceholder": "Гүйлгээг хайх...",
+    "search": "Гүйлгээг хайх...",
     "allTypes": "Бүх төрөл",
-    "noTransactions": "Гүйлгээ олдсонгүй."
+    "noTransactions": "Гүйлгээ олдсонгүй.",
+    "actions": "Гүйлгээний үйлдэл"
   }, 
     "reports": {
     "title": "Тайлан",
@@ -140,5 +142,15 @@
     "delete": "Устгах",
     "success": "Амжилттай",
     "error": "Алдаа гарлаа"
+  },
+  "nav": {
+    "dashboard": "Хянах самбар",
+    "addTransaction": "Гүйлгээ нэмэх",
+    "transactions": "Гүйлгээ",
+    "salary": "Цалин",
+    "reports": "Тайлан",
+    "settings": "Тохиргоо",
+    "logout": "Гарах",
+    "appTitle": "Нягтлан бодох бүртгэлийн систем"
   }
 }

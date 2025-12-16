@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-// import { supabase } from '@/integrations/supabase/client';
 import { Calculator, Trash2, Download, Users } from 'lucide-react';
 import {
   Table,
@@ -59,20 +58,46 @@ const Salary = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('calculate-salary', {
-        body: {
-          employeeName: formData.employeeName,
-          baseSalary: parseFloat(formData.baseSalary),
-          workDays: parseInt(formData.workDays),
-          totalWorkDays: parseInt(formData.totalWorkDays),
-          bonus: parseFloat(formData.bonus) || 0,
-          deductions: parseFloat(formData.deductions) || 0,
-        },
-      });
+      const baseSalary = parseFloat(formData.baseSalary);
+      const workDays = parseInt(formData.workDays);
+      const totalWorkDays = parseInt(formData.totalWorkDays);
+      const bonus = parseFloat(formData.bonus) || 0;
+      const deductions = parseFloat(formData.deductions) || 0;
 
-      if (error) throw error;
+      // Actual worked salary based on days
+      const actualSalary = (baseSalary / totalWorkDays) * workDays;
+      const grossSalary = actualSalary + bonus;
 
-      setSalaryResults(prev => [...prev, data]);
+      // Employee deductions
+      const socialInsurance = grossSalary * 0.115; // 11.5%
+      const healthInsurance = grossSalary * 0.02;  // 2%
+      const taxableIncome = grossSalary - socialInsurance - healthInsurance - deductions;
+      const personalIncomeTax = taxableIncome > 0 ? taxableIncome * 0.1 : 0; // 10%
+
+      const totalDeductions = socialInsurance + healthInsurance + personalIncomeTax + deductions;
+      const netSalary = grossSalary - totalDeductions;
+
+      // Employer contributions
+      const employerSocialInsurance = grossSalary * 0.125; // 12.5%
+      const employerHealthInsurance = grossSalary * 0.02;  // 2%
+      const totalEmployerCost = grossSalary + employerSocialInsurance + employerHealthInsurance;
+
+      const result: SalaryResult = {
+        employeeName: formData.employeeName,
+        baseSalary,
+        actualSalary,
+        bonus,
+        grossSalary,
+        socialInsurance,
+        healthInsurance,
+        personalIncomeTax,
+        totalDeductions,
+        netSalary,
+        employerSocialInsurance,
+        totalEmployerCost,
+      };
+
+      setSalaryResults(prev => [...prev, result]);
       setFormData({
         employeeName: '',
         baseSalary: '',

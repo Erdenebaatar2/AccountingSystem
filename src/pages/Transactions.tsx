@@ -216,8 +216,8 @@ const handleDelete = async () => {
                         <TableCell className={`text-right font-semibold ${
                           tx.type === 'income' ? 'text-success' : 'text-destructive'
                         }`}>
-                          {tx.type === 'income' ? '+' : '-'}$
-                          {Number(tx.amount).toFixed(2)}
+                          {tx.type === 'income' ? '+' : '-'} 
+                          {Number(tx.amount).toFixed(2)}₮
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

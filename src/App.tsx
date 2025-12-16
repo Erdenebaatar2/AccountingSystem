@@ -69,9 +69,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* 
-       
-            
             <Route
               path="/settings"
               element={
@@ -87,7 +84,7 @@ const App = () => (
                   <Salary />
                 </ProtectedRoute>
               }
-            /> */}
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </TransactionProvider>

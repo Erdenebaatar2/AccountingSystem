@@ -155,7 +155,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-success">
-                ${stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}₮
               </div>
             </CardContent>
           </Card>
@@ -167,7 +167,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">
-                ${stats.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {stats.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}₮
               </div>
             </CardContent>
           </Card>
@@ -179,7 +179,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${stats.netBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                ${stats.netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {stats.netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}₮
               </div>
             </CardContent>
           </Card>
@@ -270,8 +270,8 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <p className={`font-semibold ${transaction.type === 'income' ? 'text-success' : 'text-destructive'}`}>
-                      {transaction.type === 'income' ? '+' : '-'}$
-                      {Number(transaction.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {transaction.type === 'income' ? '+' : '-'} 
+                      {Number(transaction.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}₮
                     </p>
                   </div>
                 ))}

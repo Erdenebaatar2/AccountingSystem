@@ -207,7 +207,7 @@ const Reports = () => {
           <p className="font-semibold">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
-              {entry.name}: ${entry.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {entry.name}: {entry.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
             </p>
           ))}
         </div>
@@ -232,30 +232,30 @@ const Reports = () => {
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Financial Reports</h2>
-            <p className="text-muted-foreground">Analyze your income and expenses</p>
+            <h2 className="text-3xl font-bold tracking-tight">Санхүүгийн тайлан</h2>
+            <p className="text-muted-foreground">Орлого, зарлагын шинжилгээ</p>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleRefresh} variant="outline">
-              Refresh
+              Шинэчлэх
             </Button>
             <Button onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              CSV файл татах
             </Button>
           </div>
         </div>
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Select date range and report type</CardDescription>
+            <CardHeader>
+            <CardTitle>Шүүлтүүр</CardTitle>
+            <CardDescription>Огноо болон тайлангийн төрлийг сонгоно уу</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
               <div className="space-y-2">
-                <Label htmlFor="start-date">Start Date</Label>
+                <Label htmlFor="start-date">Эхлэх огноо</Label>
                 <Input
                   id="start-date"
                   type="date"
@@ -265,7 +265,7 @@ const Reports = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="end-date">End Date</Label>
+                <Label htmlFor="end-date">Дуусах огноо</Label>
                 <Input
                   id="end-date"
                   type="date"
@@ -275,7 +275,7 @@ const Reports = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="report-type">Report Type</Label>
+                <Label htmlFor="report-type">Тайлангийн төрөл</Label>
                 <Select 
                   value={reportType} 
                   onValueChange={(value: 'monthly' | 'category') => setReportType(value)}
@@ -283,9 +283,9 @@ const Reports = () => {
                   <SelectTrigger id="report-type" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly Trends</SelectItem>
-                    <SelectItem value="category">Category Breakdown</SelectItem>
+                    <SelectContent>
+                    <SelectItem value="monthly">Сарын тренд</SelectItem>
+                    <SelectItem value="category">Ангиллаар</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -296,7 +296,7 @@ const Reports = () => {
                   className="w-full"
                   variant="secondary"
                 >
-                  Apply Filters
+                  Шүүлтүүрийг хэрэгжүүлэх
                 </Button>
               </div>
             </div>
@@ -306,46 +306,46 @@ const Reports = () => {
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Нийт орлого</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                ${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                From {transactions.filter(t => t.type === 'income').length} income transactions
+                Нийт {transactions.filter(t => t.type === 'income').length} орлогын гүйлгээнээс
               </p>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Нийт зарлага</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                ${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                From {transactions.filter(t => t.type === 'expense').length} expense transactions
+                Нийт {transactions.filter(t => t.type === 'expense').length} зарлагын гүйлгээнээс
               </p>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+              <CardHeader className="flex flex-row items-center justify_between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium">Цэвэр үлдэгдэл</CardTitle>
               <DollarSign className={`h-4 w-4 ${netBalance >= 0 ? 'text-green-500' : 'text-red-500'}`} />
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {netBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {netBalance >= 0 ? 'Profit' : 'Loss'} for selected period
+                Сонгосон хугацаанд {netBalance >= 0 ? 'ашигтай' : 'алдагдалтай'}
               </p>
             </CardContent>
           </Card>
@@ -354,9 +354,9 @@ const Reports = () => {
         {/* Charts based on report type */}
         {reportType === 'monthly' ? (
           <Card>
-            <CardHeader>
-              <CardTitle>Monthly Financial Trends</CardTitle>
-              <CardDescription>Income vs Expenses over time</CardDescription>
+              <CardHeader>
+              <CardTitle>Сарын санхүүгийн тренд</CardTitle>
+              <CardDescription>Цаг хугацааны явцад орлого, зарлагын харьцуулалт</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[400px]">
@@ -371,7 +371,7 @@ const Reports = () => {
                     <YAxis 
                       stroke="#6b7280"
                       fontSize={12}
-                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      tickFormatter={(value) => `${value.toLocaleString()}₮`}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
@@ -397,9 +397,9 @@ const Reports = () => {
             {/* Category Breakdown Charts */}
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
-                <CardHeader>
-                  <CardTitle>Income by Category</CardTitle>
-                  <CardDescription>Where your income comes from</CardDescription>
+                  <CardHeader>
+                  <CardTitle>Ангиллаар орлого</CardTitle>
+                  <CardDescription>Орлого аль ангиллаас бүрдэж байна</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -411,7 +411,7 @@ const Reports = () => {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                            label={(entry) => `${entry.name}: ${entry.value.toFixed(0)}₮`}
                             outerRadius={80}
                             innerRadius={40}
                             paddingAngle={2}
@@ -427,7 +427,7 @@ const Reports = () => {
                       </ResponsiveContainer>
                     ) : (
                       <div className="h-full flex items-center justify-center">
-                        <p className="text-muted-foreground">No income data for selected period</p>
+                        <p className="text-muted-foreground">Сонгосон хугацаанд орлого байхгүй</p>
                       </div>
                     )}
                   </div>
@@ -436,8 +436,8 @@ const Reports = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Expenses by Category</CardTitle>
-                  <CardDescription>Where your money goes</CardDescription>
+                <CardTitle>Ангиллаар зарлага</CardTitle>
+                <CardDescription>Мөнгө аль зардлын ангилалд зарцуулагдсан</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
@@ -449,7 +449,7 @@ const Reports = () => {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                            label={(entry) => `${entry.name}: ${entry.value.toFixed(0)}₮`}
                             outerRadius={80}
                             innerRadius={40}
                             paddingAngle={2}
@@ -465,7 +465,7 @@ const Reports = () => {
                       </ResponsiveContainer>
                     ) : (
                       <div className="h-full flex items-center justify-center">
-                        <p className="text-muted-foreground">No expense data for selected period</p>
+                        <p className="text-muted-foreground">Сонгосон хугацаанд зарлага байхгүй</p>
                       </div>
                     )}
                   </div>
@@ -476,8 +476,8 @@ const Reports = () => {
             {/* Category Tables */}
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Income Categories</CardTitle>
+                  <CardHeader>
+                  <CardTitle className="text-sm">Орлогын ангиллууд</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {incomeByCategory.length > 0 ? (
@@ -492,20 +492,20 @@ const Reports = () => {
                             <span className="font-medium">{category.name}</span>
                           </div>
                           <div className="font-semibold text-green-600">
-                            ${category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-4">No income categories</p>
+                    <p className="text-muted-foreground text-center py-4">Орлогын ангилал байхгүй</p>
                   )}
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Expense Categories</CardTitle>
+                <CardTitle className="text-sm">Зарлагын ангиллууд</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {expensesByCategory.length > 0 ? (
@@ -520,13 +520,13 @@ const Reports = () => {
                             <span className="font-medium">{category.name}</span>
                           </div>
                           <div className="font-semibold text-red-600">
-                            ${category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {category.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}₮
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-4">No expense categories</p>
+                    <p className="text-muted-foreground text-center py-4">Зарлагын ангилал байхгүй</p>
                   )}
                 </CardContent>
               </Card>

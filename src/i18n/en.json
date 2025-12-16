@@ -51,8 +51,10 @@
     "allTransactions": "All Transactions",
     "filters": "Filters",
     "searchPlaceholder": "Search transactions...",
+    "search": "Search transactions...",
     "allTypes": "All Types",
-    "noTransactions": "No transactions found."
+    "noTransactions": "No transactions found.",
+    "actions": "Actions"
   }, 
   
   "reports": {
@@ -141,6 +143,16 @@
     "delete": "Delete",
     "success": "Success",
     "error": "Error"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "addTransaction": "Add Transaction",
+    "transactions": "Transactions",
+    "salary": "Salary",
+    "reports": "Reports",
+    "settings": "Settings",
+    "logout": "Logout",
+    "appTitle": "Accounting System"
   }
 }
 
