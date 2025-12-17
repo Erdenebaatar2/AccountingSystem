@@ -8,35 +8,141 @@ dotenv.config();
 
 const app = express();
 
-// Middleware зөв дараалал
 app.use(cors());
-app.use(express.json()); // JSON parse хийх middleware
+app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test route нэмэх
+// Database initialization function
+async function initializeDatabase() {
+  console.log('🟡 Starting database initialization...');
+  console.log('🟡 DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  
+  try {
+    console.log('🔍 Checking database tables...');
+    
+    // Test connection first
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connection successful');
+    
+    // Check if tables exist
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name IN ('users', 'categories', 'transactions')
+    `);
+    
+    console.log(`📊 Found ${tableCheck.rows.length} existing tables`);
+    
+    if (tableCheck.rows.length === 3) {
+      console.log('✅ All tables already exist');
+      return;
+    }
+    
+    console.log('🔧 Creating database tables...');
+    
+    // Create users table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        user_type VARCHAR(50) NOT NULL,
+        organization_name VARCHAR(255),
+        organization_id VARCHAR(255),
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Users table created');
+    
+    // Create categories table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        color VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Categories table created');
+    
+    // Create transactions table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        amount DECIMAL(15, 2) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        date DATE NOT NULL,
+        account VARCHAR(255),
+        document_no VARCHAR(255),
+        description TEXT,
+        category_id INTEGER REFERENCES categories(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Transactions table created');
+    
+    // Insert sample categories if none exist
+    const categoriesCount = await pool.query('SELECT COUNT(*) FROM categories');
+    console.log(`📊 Categories count: ${categoriesCount.rows[0].count}`);
+    
+    if (categoriesCount.rows[0].count === '0') {
+      await pool.query(`
+        INSERT INTO categories (name, type, color) VALUES
+        ('Цалин', 'income', '#10b981'),
+        ('Борлуулалт', 'income', '#3b82f6'),
+        ('Хоол хүнс', 'expense', '#ef4444'),
+        ('Тээвэр', 'expense', '#f59e0b'),
+        ('Бусад', 'both', '#6366f1')
+      `);
+      console.log('✅ Sample categories inserted');
+    }
+    
+    console.log('🎉 Database initialization complete!');
+    
+  } catch (error) {
+    console.error('❌ Database initialization error:', error.message);
+    console.error('❌ Full error:', error);
+    throw error;
+  }
+}
+
+// Test route
 app.get("/", (req, res) => {
   res.json({ 
     message: "API server is running",
     endpoints: {
       login: "POST /api/login",
       signup: "POST /api/signup",
-      addTransaction: "POST /api/transactions",  // Энэ URL-ийг ашиглах
+      addTransaction: "POST /api/transactions",
       categories: "GET /api/categories",
       transactions: "GET /api/transactions"
     }
   });
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    database: "connected"  // Database холболт шалгах
-  });
+app.get("/api/health", async (req, res) => {
+  try {
+    await pool.query('SELECT NOW()');
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      database: "connected"
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      database: "disconnected",
+      error: error.message
+    });
+  }
 });
 
 // Login endpoint
@@ -112,7 +218,7 @@ app.post("/api/signup", async (req, res) => {
   }
 });
 
-// Нэг endpoint нэртэй байх - add-transactions биш transactions
+// Add transaction
 app.post("/api/transactions", async (req, res) => {
   try {
     const { user_id, amount, type, date, account, document_no, description, category_id } = req.body;
@@ -145,7 +251,7 @@ app.post("/api/transactions", async (req, res) => {
   }
 });
 
-// Categories endpoint
+// Get categories
 app.get("/api/categories", async (req, res) => {
   try {
     const { type } = req.query;
@@ -165,6 +271,7 @@ app.get("/api/categories", async (req, res) => {
   }
 });
 
+// Get transactions
 app.get("/api/transactions", async (req, res) => {
   try {
     const { user_id } = req.query;
@@ -174,7 +281,6 @@ app.get("/api/transactions", async (req, res) => {
       });
     }
 
-    // Backend-д categories object-г шууд үүсгэж өгнө
     const result = await pool.query(
       `SELECT 
          t.id,
@@ -204,6 +310,7 @@ app.get("/api/transactions", async (req, res) => {
   }
 });
 
+// Delete transaction
 app.delete('/api/transactions/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -237,6 +344,7 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
+// Update transaction
 app.put('/api/transactions/:id', async (req, res) => {
   const { id } = req.params;
   const { type, amount, date, account, document_no, description, category_id } = req.body;
@@ -256,10 +364,8 @@ app.put('/api/transactions/:id', async (req, res) => {
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
-    // Get the transaction with category details
     const transaction = result.rows[0];
     
-    // If category_id exists, fetch category details
     if (transaction.category_id) {
       const categoryResult = await pool.query(
         'SELECT id, name, color FROM categories WHERE id = $1',
@@ -280,7 +386,6 @@ app.put('/api/transactions/:id', async (req, res) => {
   }
 });
 
-
 // 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ 
@@ -299,7 +404,7 @@ app.use((req, res, next) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error("🔥 Server error:", err.stack);
+  console.error(" Server error:", err.stack);
   res.status(500).json({ 
     message: "Something went wrong!",
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -307,13 +412,20 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Available endpoints:`);
-  console.log(`   http://localhost:${PORT}/`);
-  console.log(`   http://localhost:${PORT}/api/health`);
-  console.log(`   http://localhost:${PORT}/api/login`);
-  console.log(`   http://localhost:${PORT}/api/signup`);
-  console.log(`   http://localhost:${PORT}/api/transactions`);
-  console.log(`   http://localhost:${PORT}/api/categories`);
-});
+
+console.log(' Server file loaded, about to initialize database...');
+
+// Initialize database then start server
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(` Server running on port ${PORT}`);
+      console.log(` Available endpoints:`);
+      console.log(`   http://localhost:${PORT}/`);
+      console.log(`   http://localhost:${PORT}/api/health`);
+    });
+  })
+  .catch((error) => {
+    console.error(' Failed to initialize database:', error);
+    process.exit(1);
+  });
